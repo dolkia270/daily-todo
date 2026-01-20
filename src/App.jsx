@@ -162,7 +162,7 @@ export default function DailyTodoApp() {
         <div className="mb-6 text-center">
           {isEditingName ? (
             <div className="flex items-center justify-center gap-2">
-              <span className="text-2xl font-semibold text-gray-700">Bonjour</span>
+              <span className="text-2xl font-semibold text-gray-700">Bonjour, </span>
               <input
                 type="text"
                 value={tempName}
@@ -181,11 +181,11 @@ export default function DailyTodoApp() {
             </div>
           ) : (
             <h2 className="text-2xl font-semibold text-gray-700">
-              Bonjour <span 
+              Bonjour,  <span 
                 onClick={startEditingName}
                 className="cursor-pointer hover:text-gray-900 transition-colors"
               >
-                {userName || '[insérer prénom]'}
+                {userName || 'fous ton prénom'}
               </span>
             </h2>
           )}
@@ -204,7 +204,7 @@ export default function DailyTodoApp() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Écrivez vos tâches du jour"
+              placeholder="écris cque tu dois faire ajd"
               className="flex-1 p-3 sm:p-4 text-base sm:text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500"
             />
             <button
@@ -214,7 +214,7 @@ export default function DailyTodoApp() {
                   ? 'border-indigo-500 bg-indigo-50 text-indigo-600' 
                   : 'border-gray-300 text-gray-400 hover:border-indigo-300'
               }`}
-              title="Tâche permanente"
+              title="tâche quotidienne"
             >
               <Infinity size={24} />
             </button>
@@ -248,7 +248,7 @@ export default function DailyTodoApp() {
                 {task.text}
               </span>
               {task.permanent && (
-                <span className="text-indigo-500" title="Tâche permanente">
+                <span className="text-indigo-500" title="tâche quotidienne">
                   <Infinity size={18} />
                 </span>
               )}
@@ -263,7 +263,7 @@ export default function DailyTodoApp() {
         </div>
 
         {tasks.length === 0 && (
-          <p className="text-center text-gray-400 mt-8">Aucune tâche pour aujourd'hui</p>
+          <p className="text-center text-gray-400 mt-8">t'as vrm rien à faire ajd ? chômeur</p>
         )}
       </div>
     </div>
