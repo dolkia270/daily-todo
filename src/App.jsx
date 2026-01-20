@@ -10,6 +10,8 @@ export default function DailyTodoApp() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [draggedTask, setDraggedTask] = useState(null);
+  
+  const isMobile = () => window.innerWidth < 640;
 
   // Obtenir la date actuelle au format YYYY-MM-DD
   const getCurrentDate = () => {
@@ -28,70 +30,54 @@ export default function DailyTodoApp() {
 
   // Charger les données au démarrage
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Charger le nom
-        const nameResult = await window.storage.get('todo-user-name');
-        if (nameResult) {
-          setUserName(nameResult.value);
-        }
+  const currentDate = getCurrentDate();
 
-        const dateResult = await window.storage.get('todo-last-date');
-        const tasksResult = await window.storage.get('todo-tasks');
-        
-        const currentDate = getCurrentDate();
-        const storedDate = dateResult?.value || '';
-        
-        if (storedDate !== currentDate) {
-          // Nouveau jour : nettoyer les tâches cochées non permanentes
-          if (tasksResult) {
-            const storedTasks = JSON.parse(tasksResult.value);
-            const remainingTasks = storedTasks.filter(task => 
-              !task.completed || task.permanent
-            ).map(task => ({
-              ...task,
-              completed: false // Réinitialiser l'état de toutes les tâches
-            }));
-            setTasks(remainingTasks);
-            await window.storage.set('todo-tasks', JSON.stringify(remainingTasks));
-          }
-          await window.storage.set('todo-last-date', currentDate);
-          setLastDate(currentDate);
-        } else {
-          // Même jour : charger toutes les tâches
-          if (tasksResult) {
-            setTasks(JSON.parse(tasksResult.value));
-          }
-          setLastDate(storedDate);
-        }
-      } catch (error) {
-        // Première utilisation
-        const currentDate = getCurrentDate();
-        setLastDate(currentDate);
-        await window.storage.set('todo-last-date', currentDate);
-      }
-    };
-    
-    loadData();
-  }, []);
+  // Charger le nom
+  const storedName = localStorage.getItem('todo-user-name');
+  if (storedName) {
+    setUserName(storedName);
+  }
+
+  const storedDate = localStorage.getItem('todo-last-date');
+  const storedTasks = localStorage.getItem('todo-tasks');
+
+  if (storedDate !== currentDate) {
+    // Nouveau jour
+    if (storedTasks) {
+      const parsedTasks = JSON.parse(storedTasks);
+      const remainingTasks = parsedTasks
+        .filter(task => !task.completed || task.permanent)
+        .map(task => ({
+          ...task,
+          completed: false,
+        }));
+
+      setTasks(remainingTasks);
+      localStorage.setItem('todo-tasks', JSON.stringify(remainingTasks));
+    }
+
+    localStorage.setItem('todo-last-date', currentDate);
+    setLastDate(currentDate);
+  } else {
+    if (storedTasks) {
+      setTasks(JSON.parse(storedTasks));
+    }
+    setLastDate(storedDate);
+  }
+}, []);
+
 
   // Sauvegarder les tâches
-  const saveTasks = async (newTasks) => {
-    try {
-      await window.storage.set('todo-tasks', JSON.stringify(newTasks));
-    } catch (error) {
-      console.error('Erreur de sauvegarde:', error);
-    }
-  };
+  const saveTasks = (newTasks) => {
+  localStorage.setItem('todo-tasks', JSON.stringify(newTasks));
+};
+
 
   // Sauvegarder le nom
-  const saveName = async (name) => {
-    try {
-      await window.storage.set('todo-user-name', name);
-    } catch (error) {
-      console.error('Erreur de sauvegarde du nom:', error);
-    }
-  };
+  const saveName = (name) => {
+  localStorage.setItem('todo-user-name', name);
+};
+
 
   const addTask = () => {
     if (inputValue.trim()) {
@@ -170,8 +156,8 @@ export default function DailyTodoApp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-6 sm:p-8">
+      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-8 transition-all duration-200 ease-out">
         {/* Salutation */}
         <div className="mb-6 text-center">
           {isEditingName ? (
@@ -219,11 +205,11 @@ export default function DailyTodoApp() {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Écrivez vos tâches du jour"
-              className="flex-1 p-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 text-gray-700 placeholder-gray-400"
+              className="flex-1 p-3 sm:p-4 text-base sm:text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500"
             />
             <button
               onClick={() => setIsPermanent(!isPermanent)}
-              className={`p-4 border-2 rounded-lg transition-all ${
+              className={`p-3 sm:p-4 border-2 rounded-xl transition-all ${
                 isPermanent 
                   ? 'border-indigo-500 bg-indigo-50 text-indigo-600' 
                   : 'border-gray-300 text-gray-400 hover:border-indigo-300'
@@ -240,11 +226,11 @@ export default function DailyTodoApp() {
           {tasks.map((task, index) => (
             <div
               key={task.id}
-              draggable
+              draggable={!isMobile()}
               onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-move ${
+              className={`flex items-center gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-move ${
                 draggedTask === index ? 'opacity-50' : ''
               }`}
             >
@@ -255,7 +241,7 @@ export default function DailyTodoApp() {
                 className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               />
               <span
-                className={`flex-1 text-gray-800 ${
+                className={`flex-1 text-gray-800 text-sm sm:text-base break-words ${
                   task.completed ? 'line-through text-gray-400' : ''
                 }`}
               >
