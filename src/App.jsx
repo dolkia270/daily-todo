@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Infinity, Check } from 'lucide-react';
+import { Trash2, Infinity, Check, Send } from 'lucide-react';
 
 export default function DailyTodoApp() {
   const [tasks, setTasks] = useState([]);
@@ -10,108 +10,95 @@ export default function DailyTodoApp() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [draggedTask, setDraggedTask] = useState(null);
-  
+  const [hoveredTask, setHoveredTask] = useState(null);
+
   const isMobile = () => window.innerWidth < 640;
 
-  // Obtenir la date actuelle au format YYYY-MM-DD
+  // Date YYYY-MM-DD
   const getCurrentDate = () => {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
+    return new Date().toISOString().split('T')[0];
   };
 
-  // Formater la date pour l'affichage
+  // Date affichée
   const formatDate = () => {
     const now = new Date();
     const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-    
     return `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
   };
 
-  // Charger les données au démarrage
+  // Chargement initial (localStorage)
   useEffect(() => {
-  const currentDate = getCurrentDate();
+    const currentDate = getCurrentDate();
 
-  // Charger le nom
-  const storedName = localStorage.getItem('todo-user-name');
-  if (storedName) {
-    setUserName(storedName);
-  }
+    const storedName = localStorage.getItem('todo-user-name');
+    if (storedName) setUserName(storedName);
 
-  const storedDate = localStorage.getItem('todo-last-date');
-  const storedTasks = localStorage.getItem('todo-tasks');
+    const storedDate = localStorage.getItem('todo-last-date');
+    const storedTasks = localStorage.getItem('todo-tasks');
 
-  if (storedDate !== currentDate) {
-    // Nouveau jour
-    if (storedTasks) {
-      const parsedTasks = JSON.parse(storedTasks);
-      const remainingTasks = parsedTasks
-        .filter(task => !task.completed || task.permanent)
-        .map(task => ({
-          ...task,
-          completed: false,
-        }));
+    if (storedDate !== currentDate) {
+      if (storedTasks) {
+        const parsed = JSON.parse(storedTasks);
+        const remaining = parsed
+          .filter(t => !t.completed || t.permanent)
+          .map(t => ({ ...t, completed: false }));
 
-      setTasks(remainingTasks);
-      localStorage.setItem('todo-tasks', JSON.stringify(remainingTasks));
+        setTasks(remaining);
+        localStorage.setItem('todo-tasks', JSON.stringify(remaining));
+      }
+      localStorage.setItem('todo-last-date', currentDate);
+      setLastDate(currentDate);
+    } else {
+      if (storedTasks) setTasks(JSON.parse(storedTasks));
+      setLastDate(storedDate);
     }
+  }, []);
 
-    localStorage.setItem('todo-last-date', currentDate);
-    setLastDate(currentDate);
-  } else {
-    if (storedTasks) {
-      setTasks(JSON.parse(storedTasks));
-    }
-    setLastDate(storedDate);
-  }
-}, []);
-
-
-  // Sauvegarder les tâches
   const saveTasks = (newTasks) => {
-  localStorage.setItem('todo-tasks', JSON.stringify(newTasks));
-};
+    localStorage.setItem('todo-tasks', JSON.stringify(newTasks));
+  };
 
-
-  // Sauvegarder le nom
   const saveName = (name) => {
-  localStorage.setItem('todo-user-name', name);
-};
-
+    localStorage.setItem('todo-user-name', name);
+  };
 
   const addTask = () => {
-    if (inputValue.trim()) {
-      const newTasks = [...tasks, { 
-        id: Date.now(), 
-        text: inputValue, 
+    if (!inputValue.trim()) return;
+
+    const newTasks = [
+      ...tasks,
+      {
+        id: Date.now(),
+        text: inputValue,
         completed: false,
         permanent: isPermanent
-      }];
-      setTasks(newTasks);
-      saveTasks(newTasks);
-      setInputValue('');
-      setIsPermanent(false);
-    }
+      }
+    ];
+
+    setTasks(newTasks);
+    saveTasks(newTasks);
+    setInputValue('');
+    setIsPermanent(false);
   };
 
   const toggleTask = (id) => {
-    const newTasks = tasks.map(task =>
-      task.id === id ? { ...task, completed: !task.completed } : task
+    const newTasks = tasks.map(t =>
+      t.id === id ? { ...t, completed: !t.completed } : t
     );
     setTasks(newTasks);
     saveTasks(newTasks);
   };
 
   const deleteTask = (id) => {
-    const newTasks = tasks.filter(task => task.id !== id);
+    const newTasks = tasks.filter(t => t.id !== id);
     setTasks(newTasks);
     saveTasks(newTasks);
+    setHoveredTask(null);
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      addTask();
-    }
+    if (e.key === 'Enter') addTask();
   };
 
   const startEditingName = () => {
@@ -126,12 +113,10 @@ export default function DailyTodoApp() {
   };
 
   const handleNameKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      saveTempName();
-    }
+    if (e.key === 'Enter') saveTempName();
   };
 
-  // Fonctions de drag and drop
+  // Drag & drop
   const handleDragStart = (e, index) => {
     setDraggedTask(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -157,71 +142,60 @@ export default function DailyTodoApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-6 sm:p-8">
-      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-8 transition-all duration-200 ease-out">
+      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-8">
+        
         {/* Salutation */}
         <div className="mb-6 text-center">
           {isEditingName ? (
             <div className="flex items-center justify-center gap-2">
-              <span className="text-2xl font-semibold text-gray-700">Bonjour, </span>
+              <span className="text-2xl font-semibold text-gray-700">Bonjour,</span>
               <input
-                type="text"
                 value={tempName}
                 onChange={(e) => setTempName(e.target.value)}
                 onKeyPress={handleNameKeyPress}
-                className="text-2xl font-semibold text-gray-700 border-b-2 border-indigo-500 focus:outline-none px-2"
-                placeholder="votre prénom"
+                className="text-2xl font-semibold border-b-2 border-indigo-500 focus:outline-none px-2"
                 autoFocus
               />
-              <button
-                onClick={saveTempName}
-                className="text-green-600 hover:text-green-700 transition-colors"
-              >
+              <button onClick={saveTempName} className="text-green-600">
                 <Check size={24} />
               </button>
             </div>
           ) : (
             <h2 className="text-2xl font-semibold text-gray-700">
-              Bonjour,  <span 
-                onClick={startEditingName}
-                className="cursor-pointer hover:text-gray-900 transition-colors"
-              >
-                {userName || 'fous ton prénom'}
+              Bonjour,&nbsp;
+              <span onClick={startEditingName} className="cursor-pointer hover:text-gray-900">
+                {userName || 'ton prénom'}
               </span>
             </h2>
           )}
         </div>
 
         {/* Date */}
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-800">{formatDate()}</h1>
-        </div>
+        <h1 className="text-xl font-bold text-gray-800 mb-6">{formatDate()}</h1>
 
-        {/* Champ de saisie avec option permanente */}
-        <div className="mb-6">
-          <div className="flex gap-2 items-center">
+        {/* Input */}
+        <div className="mb-6 flex gap-2">
+          <div className="flex-1 flex items-center gap-3 p-3 border-2 rounded-xl focus-within:border-indigo-500">
             <input
-              type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="écris cque tu dois faire ajd"
-              className="flex-1 p-3 sm:p-4 text-base sm:text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500"
+              placeholder="écris, fais, coche. c'es tout."
+              className="flex-1 focus:outline-none"
             />
-            <button
-              onClick={() => setIsPermanent(!isPermanent)}
-              className={`p-3 sm:p-4 border-2 rounded-xl transition-all ${
-                isPermanent 
-                  ? 'border-indigo-500 bg-indigo-50 text-indigo-600' 
-                  : 'border-gray-300 text-gray-400 hover:border-indigo-300'
-              }`}
-              title="tâche quotidienne"
-            >
-              <Infinity size={24} />
+            <button onClick={() => setIsPermanent(!isPermanent)}>
+              <Infinity className={isPermanent ? 'text-indigo-600' : 'text-gray-400'} />
             </button>
           </div>
+          <button
+            onClick={addTask}
+            className="p-4 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600"
+          >
+            <Send size={20} />
+          </button>
         </div>
 
-        {/* Liste des tâches */}
+        {/* Tasks */}
         <div className="space-y-3">
           {tasks.map((task, index) => (
             <div
@@ -230,44 +204,30 @@ export default function DailyTodoApp() {
               onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`flex items-center gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-move ${
-                draggedTask === index ? 'opacity-50' : ''
-              }`}
+              onMouseEnter={() => setHoveredTask(task.id)}
+              onMouseLeave={() => setHoveredTask(null)}
+              className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
             >
-              <input
-                type="checkbox"
-                checked={task.completed}
-                onChange={() => toggleTask(task.id)}
-                className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-              />
-              <span
-                className={`flex-1 text-gray-800 text-sm sm:text-base break-words ${
-                  task.completed ? 'line-through text-gray-400' : ''
-                }`}
-              >
+              <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} />
+              <span className={`flex-1 ${task.completed ? 'line-through text-gray-400' : ''}`}>
                 {task.text}
               </span>
-              {task.permanent && (
-                <span className="text-indigo-500" title="tâche quotidienne">
-                  <Infinity size={18} />
-                </span>
+              {task.permanent && <Infinity size={16} className="text-indigo-500" />}
+              {hoveredTask === task.id && (
+                <button onClick={() => deleteTask(task.id)} className="text-red-500">
+                  <Trash2 size={18} />
+                </button>
               )}
-              <button
-                onClick={() => deleteTask(task.id)}
-                className="text-red-500 hover:text-red-700 transition-colors"
-              >
-                <Trash2 size={18} />
-              </button>
             </div>
           ))}
         </div>
 
         {tasks.length === 0 && (
-          <p className="text-center text-gray-400 mt-8">t'as vrm rien à faire ajd ? chômeur</p>
+          <p className="text-center text-gray-400 mt-8">
+            t'as vrm rien à faire ajd ? chômeur
+          </p>
         )}
       </div>
     </div>
   );
 }
-
-
